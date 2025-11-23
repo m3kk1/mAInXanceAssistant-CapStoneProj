@@ -162,7 +162,7 @@ These visualizations directly informed model selection:
 
 ### Random Forest - Production Model
 
-![Random Forest Confusion Matrix](images/Random Forest Heatmap.png)
+![Random Forest Confusion Matrix](images/Random_Forest_Heatmap.png)
 
 The Random Forest model achieves excellent balanced performance across all maintenance action classes:
 
