@@ -99,6 +99,8 @@ from sklearn.metrics import (
 # ===============================
 # Visualization
 # ===============================
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend for headless environments
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -361,9 +363,16 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
-# y labels for coloring
+# Define save directory for artifacts
+SAVE_DIR = Path("artifacts")
+SAVE_DIR.mkdir(exist_ok=True)
+
+# y labels for coloring (skip if not yet defined)
 try:
-    y_labels = y_train_text.astype(str).reset_index(drop=True)
+    if 'y_train_text' in dir():
+        y_labels = y_train_text.astype(str).reset_index(drop=True)
+    else:
+        y_labels = None
 except Exception:
     y_labels = None
 
@@ -537,6 +546,15 @@ X_train_res, y_train_res = smote.fit_resample(X_train, y_train)
 print("Original class counts:", Counter(y))
 print("Train (encoded) before:", Counter(y_train))
 print("Train (encoded) after :", Counter(y_train_res))
+
+# Also create text versions for later model sections
+X_train_text, X_test_text, y_train_text, y_test_text = train_test_split(
+    df['Description_cleaned'].astype(str), 
+    df['Response_Label'].astype(str),
+    test_size=0.2, 
+    random_state=42, 
+    stratify=df['Response_Label']
+)
 
 
 # # Training Prep
