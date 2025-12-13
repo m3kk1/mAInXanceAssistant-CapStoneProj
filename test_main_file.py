@@ -32,7 +32,8 @@ except Exception as e:
 # Test 2: Load CSV
 print("\n[2/7] Testing data loading...")
 try:
-    csv_path = os.path.join(os.path.dirname(__file__), "cleaned_work_orders.csv")
+    # CSV is in the same directory as this test script
+    csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cleaned_work_orders.csv")
     df = pd.read_csv(csv_path, low_memory=False)
     print(f"✓ Loaded CSV: {df.shape}")
 except Exception as e:

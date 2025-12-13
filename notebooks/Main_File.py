@@ -130,6 +130,7 @@ subprocess.check_call([sys.executable, "-m", "pip", "install", "python-Levenshte
 
 import os
 # Load CSV from the repository root directory
+# Go up one level from notebooks/ directory to reach repository root
 csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "cleaned_work_orders.csv")
 df = pd.read_csv(csv_path)
 
@@ -369,7 +370,7 @@ SAVE_DIR.mkdir(exist_ok=True)
 
 # y labels for coloring (skip if not yet defined)
 try:
-    if 'y_train_text' in dir():
+    if 'y_train_text' in globals():
         y_labels = y_train_text.astype(str).reset_index(drop=True)
     else:
         y_labels = None
@@ -386,7 +387,7 @@ def to_dense_float32(X):
     return X
 
 # Use the TRAIN matrix you clustered/classified on
-assert 'X_train' in globals(), "X_train_vec not found. Provide your train feature matrix."
+assert 'X_train' in globals(), "X_train not found. Provide your train feature matrix."
 Xmat_full = X_train
 n = Xmat_full.shape[0]
 
