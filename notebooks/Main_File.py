@@ -56,10 +56,10 @@ pip_install("openai")
 # ===============================
 # Core
 # ===============================
-get_ipython().system('pip install umap-learn')
+subprocess.check_call([sys.executable, "-m", "pip", "install", "umap-learn", "-q"])
 import os, re, warnings
 import numpy as np
-get_ipython().system('pip install pandas')
+subprocess.check_call([sys.executable, "-m", "pip", "install", "pandas", "-q"])
 import pandas as pd
 import joblib
 from tqdm import tqdm
@@ -117,8 +117,8 @@ from openai import OpenAI
 # In[ ]:
 
 
-get_ipython().system('python -m spacy download en_core_web_sm')
-get_ipython().system('pip install python-Levenshtein')
+subprocess.check_call([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
+subprocess.check_call([sys.executable, "-m", "pip", "install", "python-Levenshtein", "-q"])
 
 
 # # Cleaning Data
@@ -127,7 +127,9 @@ get_ipython().system('pip install python-Levenshtein')
 
 
 import os
-df = pd.read_csv(os.path.join(os.path.expanduser("~"), "Downloads/cleaned_work_orders.csv"))
+# Load CSV from the repository root directory
+csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "cleaned_work_orders.csv")
+df = pd.read_csv(csv_path)
 
 df = df.dropna(how='all')
 
@@ -180,7 +182,7 @@ df = df[~((df['Description_cleaned'].str.strip() == "") & (df['Text_cleaned'].st
 df = df[df['Text_cleaned'].notna() & (df['Text_cleaned'].str.strip() != "") & (df['Text_cleaned'].str.lower().str.strip() != "nan")]
 
 # Show data sample for verification
-display(df[['Description_cleaned', 'Text_cleaned']].head())
+print(df[['Description_cleaned', 'Text_cleaned']].head())
 
 
 # # **2. System Labeling**
@@ -657,7 +659,7 @@ for name, pipe in models.items():
 
 res = pd.DataFrame(rows).sort_values("cv_f1_macro_mean", ascending=False).reset_index(drop=True)
 print("=== Cross-validated results (3-fold, stratified) ===")
-display(res)
+print(res)
 
 # =====  Fit the top model on a proper train/test split and report test metrics =====
 top_model_name = res.iloc[0]["model"]
@@ -1151,11 +1153,11 @@ from pathlib import Path
 # Define the missing functions and model pipeline
 def _llm_narrative(prompt):
     # This is a simple placeholder function - replace with actual LLM implementation
-    return "Based on the symptoms, this appears to be a mechanical issue with the conveyor belt system. \
-The belt squeal and hot motor near the gearbox suggest belt slippage or misalignment. \
-First, check if the belt is properly tensioned and aligned to prevent further damage. \l
-Inspect the gearbox for proper lubrication and signs of wear. \
-Plan to clean and lubricate the system, adjust belt tension, and if problems persist, consider replacing worn components in the drive system."
+    return """Based on the symptoms, this appears to be a mechanical issue with the conveyor belt system. 
+The belt squeal and hot motor near the gearbox suggest belt slippage or misalignment. 
+First, check if the belt is properly tensioned and aligned to prevent further damage. 
+Inspect the gearbox for proper lubrication and signs of wear. 
+Plan to clean and lubricate the system, adjust belt tension, and if problems persist, consider replacing worn components in the drive system."""
 
 def retrieve_neighbors(description, top_label, k=5, restrict=True):
     # Placeholder function to simulate retrieving similar cases
