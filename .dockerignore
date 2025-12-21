@@ -21,7 +21,6 @@ ENV/
 
 # Documentation
 *.md
-!requirements.txt
 
 # Jupyter notebooks
 notebooks/
@@ -30,9 +29,6 @@ notebooks/
 
 # Images and visualizations
 images/
-
-# Model artifacts (optional - include if needed for inference)
-# models/
 
 # Test outputs
 *.log
