@@ -1,0 +1,42 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.github/
+
+# Documentation
+*.md
+!requirements.txt
+
+# Jupyter notebooks
+notebooks/
+*.ipynb
+.ipynb_checkpoints/
+
+# Images and visualizations
+images/
+
+# Model artifacts (optional - include if needed for inference)
+# models/
+
+# Test outputs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
