@@ -10,6 +10,57 @@ import pytest
 
 warnings.filterwarnings("ignore")
 
+# Define action patterns as module-level constant
+ACTION_PATTERNS = [
+    ("Replace Part", r"\b(replace|replaced|swap|swapped|install(ed)?)\b.*\b(bearing|motor|belt|gear|fuse|sensor|valve|hose|coupling|chain|switch|roller|pulley|seal)\b"),
+    ("Tighten/Adjust", r"\b(tighten|tightened|adjust|adjusted|align|aligned|re-seat|reseat|calibrate|calibrated|reposition|realign(ed)?)\b"),
+    ("Clean/Clear", r"\b(clean|cleaned|clear|cleared|remove|removed)\b.*\b(debris|dust|jam|blockage|clog)\b|\b(cleaned|cleared)\b"),
+    ("Refill/Top Off", r"\b(add|added|refill|refilled|top\s?off)\b.*\b(oil|fluid|grease|lub(e|ricant)|coolant)\b"),
+    ("Electrical Fix", r"\b(replace|replaced|reset|rewire|wire(d)?|reconnect|connector|contactor|breaker|fuse|vfd|plc|relay)\b"),
+    ("Hydraulic/Pneumatic Fix", r"\b(hose|cylinder|solenoid|regulator|air line|hydraulic|pneumatic)\b.*\b(repair|replace|fixed|leak|leaking)\b"),
+    ("Reset/Power Cycle", r"\b(reset|power.?cycle|cycled|restart|reboot|restarted)\b"),
+    ("Inspection/Test Only", r"\b(inspect|inspected|tested|verify|verified|checked)\b(?!.*replace|.*repair|.*fix)"),
+    ("Other", r".*")
+]
+
+
+def to_response_label(text: str) -> str:
+    """Convert text to response label based on action patterns"""
+    t = " " + str(text).lower() + " "
+    for label, pat in ACTION_PATTERNS:
+        if re.search(pat, t):
+            return label
+    return "Other"
+
+
+def clean_dataframe(df):
+    """Clean dataframe with standard preprocessing steps"""
+    import pandas as pd
+    
+    df_clean = df.dropna(how='all')
+    df_clean = df_clean[~df_clean['Text'].str.contains("completed", case=False, na=False)]
+    df_clean = df_clean[~df_clean['Text'].str.contains("complete", case=False, na=False)]
+    df_clean = df_clean.dropna(subset=['Description', 'Text']).drop_duplicates()
+    df_clean = df_clean[df_clean['WO No.'].astype(str).str.match(r'^\d+$')]
+    
+    df_clean['Description_cleaned'] = (
+        df_clean['Description'].fillna("").str.lower()
+        .str.replace(r'[^\w\s]', '', regex=True)
+        .str.replace(r'\d+', '', regex=True).str.strip()
+    )
+    
+    df_clean['Text_cleaned'] = (
+        df_clean['Text'].fillna("").str.lower()
+        .str.replace(r'[^\w\s]', '', regex=True)
+        .str.replace(r'\d+', '', regex=True).str.strip()
+    )
+    
+    df_clean = df_clean[['Description_cleaned', 'Text_cleaned']].dropna()
+    df_clean = df_clean[df_clean['Description_cleaned'].str.strip() != ""]
+    df_clean = df_clean[df_clean['Text_cleaned'].str.strip() != ""]
+    
+    return df_clean
+
 
 def test_imports():
     """Test 1: Import all required packages"""
@@ -40,29 +91,7 @@ def test_data_loading(df):
 
 def test_data_cleaning(df):
     """Test 3: Data cleaning"""
-    import pandas as pd
-    
-    df_clean = df.dropna(how='all')
-    df_clean = df_clean[~df_clean['Text'].str.contains("completed", case=False, na=False)]
-    df_clean = df_clean[~df_clean['Text'].str.contains("complete", case=False, na=False)]
-    df_clean = df_clean.dropna(subset=['Description', 'Text']).drop_duplicates()
-    df_clean = df_clean[df_clean['WO No.'].astype(str).str.match(r'^\d+$')]
-    
-    df_clean['Description_cleaned'] = (
-        df_clean['Description'].fillna("").str.lower()
-        .str.replace(r'[^\w\s]', '', regex=True)
-        .str.replace(r'\d+', '', regex=True).str.strip()
-    )
-    
-    df_clean['Text_cleaned'] = (
-        df_clean['Text'].fillna("").str.lower()
-        .str.replace(r'[^\w\s]', '', regex=True)
-        .str.replace(r'\d+', '', regex=True).str.strip()
-    )
-    
-    df_clean = df_clean[['Description_cleaned', 'Text_cleaned']].dropna()
-    df_clean = df_clean[df_clean['Description_cleaned'].str.strip() != ""]
-    df_clean = df_clean[df_clean['Text_cleaned'].str.strip() != ""]
+    df_clean = clean_dataframe(df)
     
     assert df_clean.shape[0] > 0, "Cleaned data should have rows"
     assert 'Description_cleaned' in df_clean.columns, "Should have Description_cleaned column"
@@ -72,55 +101,12 @@ def test_data_cleaning(df):
 @pytest.fixture
 def cleaned_df(df):
     """Fixture to provide cleaned dataframe"""
-    import pandas as pd
-    
-    df_clean = df.dropna(how='all')
-    df_clean = df_clean[~df_clean['Text'].str.contains("completed", case=False, na=False)]
-    df_clean = df_clean[~df_clean['Text'].str.contains("complete", case=False, na=False)]
-    df_clean = df_clean.dropna(subset=['Description', 'Text']).drop_duplicates()
-    df_clean = df_clean[df_clean['WO No.'].astype(str).str.match(r'^\d+$')]
-    
-    df_clean['Description_cleaned'] = (
-        df_clean['Description'].fillna("").str.lower()
-        .str.replace(r'[^\w\s]', '', regex=True)
-        .str.replace(r'\d+', '', regex=True).str.strip()
-    )
-    
-    df_clean['Text_cleaned'] = (
-        df_clean['Text'].fillna("").str.lower()
-        .str.replace(r'[^\w\s]', '', regex=True)
-        .str.replace(r'\d+', '', regex=True).str.strip()
-    )
-    
-    df_clean = df_clean[['Description_cleaned', 'Text_cleaned']].dropna()
-    df_clean = df_clean[df_clean['Description_cleaned'].str.strip() != ""]
-    df_clean = df_clean[df_clean['Text_cleaned'].str.strip() != ""]
-    
-    return df_clean
+    return clean_dataframe(df)
 
 
 def test_labeling(cleaned_df):
     """Test 4: Labeling"""
     import pandas as pd
-    
-    ACTION_PATTERNS = [
-        ("Replace Part", r"\b(replace|replaced|swap|swapped|install(ed)?)\b.*\b(bearing|motor|belt|gear|fuse|sensor|valve|hose|coupling|chain|switch|roller|pulley|seal)\b"),
-        ("Tighten/Adjust", r"\b(tighten|tightened|adjust|adjusted|align|aligned|re-seat|reseat|calibrate|calibrated|reposition|realign(ed)?)\b"),
-        ("Clean/Clear", r"\b(clean|cleaned|clear|cleared|remove|removed)\b.*\b(debris|dust|jam|blockage|clog)\b|\b(cleaned|cleared)\b"),
-        ("Refill/Top Off", r"\b(add|added|refill|refilled|top\s?off)\b.*\b(oil|fluid|grease|lub(e|ricant)|coolant)\b"),
-        ("Electrical Fix", r"\b(replace|replaced|reset|rewire|wire(d)?|reconnect|connector|contactor|breaker|fuse|vfd|plc|relay)\b"),
-        ("Hydraulic/Pneumatic Fix", r"\b(hose|cylinder|solenoid|regulator|air line|hydraulic|pneumatic)\b.*\b(repair|replace|fixed|leak|leaking)\b"),
-        ("Reset/Power Cycle", r"\b(reset|power.?cycle|cycled|restart|reboot|restarted)\b"),
-        ("Inspection/Test Only", r"\b(inspect|inspected|tested|verify|verified|checked)\b(?!.*replace|.*repair|.*fix)"),
-        ("Other", r".*")
-    ]
-    
-    def to_response_label(text: str) -> str:
-        t = " " + str(text).lower() + " "
-        for label, pat in ACTION_PATTERNS:
-            if re.search(pat, t):
-                return label
-        return "Other"
     
     df = cleaned_df.copy()
     df['Response_Label'] = df['Text_cleaned'].apply(to_response_label)
@@ -142,26 +128,6 @@ def test_vectorization(cleaned_df):
     """Test 5: Vectorization"""
     from sklearn.feature_extraction.text import TfidfVectorizer
     import pandas as pd
-    
-    # Add labels first
-    ACTION_PATTERNS = [
-        ("Replace Part", r"\b(replace|replaced|swap|swapped|install(ed)?)\b.*\b(bearing|motor|belt|gear|fuse|sensor|valve|hose|coupling|chain|switch|roller|pulley|seal)\b"),
-        ("Tighten/Adjust", r"\b(tighten|tightened|adjust|adjusted|align|aligned|re-seat|reseat|calibrate|calibrated|reposition|realign(ed)?)\b"),
-        ("Clean/Clear", r"\b(clean|cleaned|clear|cleared|remove|removed)\b.*\b(debris|dust|jam|blockage|clog)\b|\b(cleaned|cleared)\b"),
-        ("Refill/Top Off", r"\b(add|added|refill|refilled|top\s?off)\b.*\b(oil|fluid|grease|lub(e|ricant)|coolant)\b"),
-        ("Electrical Fix", r"\b(replace|replaced|reset|rewire|wire(d)?|reconnect|connector|contactor|breaker|fuse|vfd|plc|relay)\b"),
-        ("Hydraulic/Pneumatic Fix", r"\b(hose|cylinder|solenoid|regulator|air line|hydraulic|pneumatic)\b.*\b(repair|replace|fixed|leak|leaking)\b"),
-        ("Reset/Power Cycle", r"\b(reset|power.?cycle|cycled|restart|reboot|restarted)\b"),
-        ("Inspection/Test Only", r"\b(inspect|inspected|tested|verify|verified|checked)\b(?!.*replace|.*repair|.*fix)"),
-        ("Other", r".*")
-    ]
-    
-    def to_response_label(text: str) -> str:
-        t = " " + str(text).lower() + " "
-        for label, pat in ACTION_PATTERNS:
-            if re.search(pat, t):
-                return label
-        return "Other"
     
     df = cleaned_df.copy()
     df['Response_Label'] = df['Text_cleaned'].apply(to_response_label)
@@ -185,26 +151,6 @@ def test_train_test_split(cleaned_df):
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.model_selection import train_test_split
     import pandas as pd
-    
-    # Prepare data with labels
-    ACTION_PATTERNS = [
-        ("Replace Part", r"\b(replace|replaced|swap|swapped|install(ed)?)\b.*\b(bearing|motor|belt|gear|fuse|sensor|valve|hose|coupling|chain|switch|roller|pulley|seal)\b"),
-        ("Tighten/Adjust", r"\b(tighten|tightened|adjust|adjusted|align|aligned|re-seat|reseat|calibrate|calibrated|reposition|realign(ed)?)\b"),
-        ("Clean/Clear", r"\b(clean|cleaned|clear|cleared|remove|removed)\b.*\b(debris|dust|jam|blockage|clog)\b|\b(cleaned|cleared)\b"),
-        ("Refill/Top Off", r"\b(add|added|refill|refilled|top\s?off)\b.*\b(oil|fluid|grease|lub(e|ricant)|coolant)\b"),
-        ("Electrical Fix", r"\b(replace|replaced|reset|rewire|wire(d)?|reconnect|connector|contactor|breaker|fuse|vfd|plc|relay)\b"),
-        ("Hydraulic/Pneumatic Fix", r"\b(hose|cylinder|solenoid|regulator|air line|hydraulic|pneumatic)\b.*\b(repair|replace|fixed|leak|leaking)\b"),
-        ("Reset/Power Cycle", r"\b(reset|power.?cycle|cycled|restart|reboot|restarted)\b"),
-        ("Inspection/Test Only", r"\b(inspect|inspected|tested|verify|verified|checked)\b(?!.*replace|.*repair|.*fix)"),
-        ("Other", r".*")
-    ]
-    
-    def to_response_label(text: str) -> str:
-        t = " " + str(text).lower() + " "
-        for label, pat in ACTION_PATTERNS:
-            if re.search(pat, t):
-                return label
-        return "Other"
     
     df = cleaned_df.copy()
     df['Response_Label'] = df['Text_cleaned'].apply(to_response_label)
@@ -233,26 +179,6 @@ def test_model_training(cleaned_df):
     from sklearn.model_selection import train_test_split
     from sklearn.ensemble import RandomForestClassifier
     import pandas as pd
-    
-    # Prepare data with labels
-    ACTION_PATTERNS = [
-        ("Replace Part", r"\b(replace|replaced|swap|swapped|install(ed)?)\b.*\b(bearing|motor|belt|gear|fuse|sensor|valve|hose|coupling|chain|switch|roller|pulley|seal)\b"),
-        ("Tighten/Adjust", r"\b(tighten|tightened|adjust|adjusted|align|aligned|re-seat|reseat|calibrate|calibrated|reposition|realign(ed)?)\b"),
-        ("Clean/Clear", r"\b(clean|cleaned|clear|cleared|remove|removed)\b.*\b(debris|dust|jam|blockage|clog)\b|\b(cleaned|cleared)\b"),
-        ("Refill/Top Off", r"\b(add|added|refill|refilled|top\s?off)\b.*\b(oil|fluid|grease|lub(e|ricant)|coolant)\b"),
-        ("Electrical Fix", r"\b(replace|replaced|reset|rewire|wire(d)?|reconnect|connector|contactor|breaker|fuse|vfd|plc|relay)\b"),
-        ("Hydraulic/Pneumatic Fix", r"\b(hose|cylinder|solenoid|regulator|air line|hydraulic|pneumatic)\b.*\b(repair|replace|fixed|leak|leaking)\b"),
-        ("Reset/Power Cycle", r"\b(reset|power.?cycle|cycled|restart|reboot|restarted)\b"),
-        ("Inspection/Test Only", r"\b(inspect|inspected|tested|verify|verified|checked)\b(?!.*replace|.*repair|.*fix)"),
-        ("Other", r".*")
-    ]
-    
-    def to_response_label(text: str) -> str:
-        t = " " + str(text).lower() + " "
-        for label, pat in ACTION_PATTERNS:
-            if re.search(pat, t):
-                return label
-        return "Other"
     
     df = cleaned_df.copy()
     df['Response_Label'] = df['Text_cleaned'].apply(to_response_label)
