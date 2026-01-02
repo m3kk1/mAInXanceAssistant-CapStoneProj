@@ -6,6 +6,8 @@
 
 An intelligent maintenance assistant that transforms natural language problem descriptions into actionable recommendations using ensemble machine learning and retrieval-augmented generation.
 
+Mock up Live Demo 
+https://huggingface.co/spaces/john-fizer/mAInXanceAssistant
 ---
 
 ## Problem Statement
