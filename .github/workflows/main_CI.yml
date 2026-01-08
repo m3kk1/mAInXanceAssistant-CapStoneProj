@@ -26,7 +26,7 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest
+          python test_main_file.py
 
       - name: Build Docker image
         run: |
