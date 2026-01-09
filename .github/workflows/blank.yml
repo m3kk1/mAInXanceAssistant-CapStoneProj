@@ -21,4 +21,4 @@ jobs:
 
     - name: Run your file
       run: |
-        python examples/meta_learning/example_acla.py
+        python run_main_file.py
